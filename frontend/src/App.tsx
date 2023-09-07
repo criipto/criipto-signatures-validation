@@ -1,9 +1,8 @@
 import React, {useCallback, useState} from 'react'
 import {useDropzone} from 'react-dropzone'
-import logo from './logo.svg';
 import './App.css';
 
-import {Validation} from '../../library';
+import type {Validation} from '../../library';
 
 type ValidationResponse = {
   [key: string]: Validation | {error: string}
