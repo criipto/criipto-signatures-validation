@@ -1,0 +1,23 @@
+{
+  "name": "criipto-signatures-validation",
+  "version": "1.0.0",
+  "description": "Tools for validating signatures produced by Criipto Signatures API",
+  "main": "index.js",
+  "scripts": {
+    "start": "netlify dev",
+    "start:frontend": "cd frontend && npm run start"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/criipto/criipto-signatures-validation.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/criipto/criipto-signatures-validation/issues"
+  },
+  "homepage": "https://github.com/criipto/criipto-signatures-validation#readme",
+  "devDependencies": {
+    "netlify-cli": "^16.3.1"
+  }
+}
