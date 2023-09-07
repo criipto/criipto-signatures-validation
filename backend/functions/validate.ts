@@ -30,8 +30,8 @@ const handler: Handler = async (event, context) => {
   }));
 
   return {
-    statusCode: 400,
-    body: 'Not implemented yet'
+    statusCode: 200,
+    body: JSON.stringify(response)
   };
 }
 
@@ -42,7 +42,7 @@ type Files = {
 };
 async function parseMultipartForm(event: HandlerEvent): Promise<Files | null> {
   if (!event.body) return null;
-  if (!event.headers['Content-Type']?.includes('multipart/form-data')) return null;
+  if (!event.headers['content-type']?.includes('multipart/form-data')) return null;
 
   return await new Promise((resolve) => {
     const fields : Files = {};
