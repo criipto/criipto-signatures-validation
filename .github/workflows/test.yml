@@ -12,6 +12,8 @@ jobs:
           node-version: 18.x
           cache: 'npm'
           cache-dependency-path: library/package-lock.json
+      - run: npm ci
+        working-directory: library
       - run: npm run check
         working-directory: library
       - run: npm run test
