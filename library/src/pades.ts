@@ -1,5 +1,7 @@
 import { PDFDocument, PDFName, PDFDict, PDFString } from 'pdf-lib/es';
+import jose from 'jose';
 import {CriiptoDrawableEvidence, CriiptoEvidenceWrapper, CriiptoJwtEvidence} from './criipto.js';
+import { tryFindBirthdateClaim, tryFindCountryClaim, tryFindNameClaim, tryFindNonSensitiveId } from './claims.js';
 
 type JwkRendition = {
   kty : string
@@ -15,8 +17,16 @@ type JwksRendition = {
   keys : JwkRendition[]
 }
 
+export type CriiptoIdentity = {
+  name: string
+  id?: string
+  birthdate?: string
+  country?: string
+}
+
 export type CriiptoJwtSignature = {
   type: 'criipto.signature.jwt'
+  identity: CriiptoIdentity
   evidence: {
     jwt: {
       raw: string
@@ -26,6 +36,7 @@ export type CriiptoJwtSignature = {
 }
 export type CriiptoDrawableSignature = {
   type: 'criipto.signature.drawable',
+  identity: CriiptoIdentity
   evidence: {
     image: string
     name?: string
@@ -62,10 +73,17 @@ export async function validatePDF(blob: Buffer) : Promise<PAdESValidation> {
 
       if (wrapper.type === 'signature.jwt.v1' || wrapper.type === 'criipto.signature.jwt.v1') {
         const jwtSignature = JSON.parse(wrapper.value) as CriiptoJwtEvidence;
+        const payload = jose.UnsecuredJWT.decode(jwtSignature.jwt).payload;
 
         signatures.push({
           type: 'criipto.signature.jwt',
           ...baseSignature,
+          identity: {
+            name: tryFindNameClaim(payload)!,
+            country: tryFindCountryClaim(payload),
+            birthdate: tryFindBirthdateClaim(payload),
+            id: tryFindNonSensitiveId(payload) ?? undefined,
+          },
           evidence: {
             jwt: {
               raw: jwtSignature.jwt
@@ -81,6 +99,9 @@ export async function validatePDF(blob: Buffer) : Promise<PAdESValidation> {
         signatures.push({
           type: 'criipto.signature.drawable',
           ...baseSignature,
+          identity: {
+            name: imageSignature.name!
+          },
           evidence: imageSignature
         });
         continue;
