@@ -2,7 +2,6 @@ on: [push]
 jobs:
   test-library:
     runs-on: ubuntu-latest
-    working-directory: library
     steps:
       - uses: actions/checkout@v3
       - name: Setup kernel for build, increase watchers
@@ -12,6 +11,8 @@ jobs:
         with:
           node-version: 18.x
           cache: 'npm'
-          cache-dependency-path: package-lock.json
+          cache-dependency-path: library/package-lock.json
       - run: npm run check
+        working-directory: library
       - run: npm run test
+        working-directory: library
