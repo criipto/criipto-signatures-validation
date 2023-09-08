@@ -1,0 +1,17 @@
+on: [push]
+jobs:
+  test-library:
+    runs-on: ubuntu-latest
+    working-directory: library
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup kernel for build, increase watchers
+        run: echo fs.inotify.max_user_watches=524288 | sudo tee -a /etc/sysctl.conf && sudo sysctl -p
+      - name: Use Node.js 18.x
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18.x
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+      - run: npm run check
+      - run: npm run test
