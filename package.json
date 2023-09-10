@@ -5,9 +5,9 @@
   "main": "index.js",
   "scripts": {
     "start": "netlify dev",
-    "start:frontend": "cd frontend && npm run start",
-    "build:frontend": "cd frontend && npm run build",
-    "build:netlify": "cd library && npm ci && cd ../backend && npm ci && cd ../frontend && npm ci && npm run build"
+    "start:frontend": "cd frontend-vite && npm run dev",
+    "build:frontend": "cd frontend-vite && npm run build",
+    "build:netlify": "cd library && npm ci && cd ../backend && npm ci && cd ../frontend-vite && npm ci && npm run build"
   },
   "repository": {
     "type": "git",
