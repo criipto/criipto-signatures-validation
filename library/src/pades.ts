@@ -1,5 +1,5 @@
-import { PDFDocument, PDFName, PDFDict, PDFString } from 'pdf-lib/es';
-import {UnsecuredJWT} from 'jose'
+import { PDFDocument, PDFName, PDFDict, PDFString } from 'pdf-lib';
+import { decodeJwt } from 'jose';
 import {CriiptoDrawableEvidence, CriiptoEvidenceWrapper, CriiptoJwtEvidence} from './criipto.js';
 import { tryFindBirthdateClaim, tryFindCountryClaim, tryFindNameClaim, tryFindNonSensitiveId } from './claims.js';
 
@@ -73,7 +73,7 @@ export async function validatePDF(blob: Buffer) : Promise<PAdESValidation> {
 
       if (wrapper.type === 'signature.jwt.v1' || wrapper.type === 'criipto.signature.jwt.v1') {
         const jwtSignature = JSON.parse(wrapper.value) as CriiptoJwtEvidence;
-        const payload = UnsecuredJWT.decode(jwtSignature.jwt).payload;
+        const payload = decodeJwt(jwtSignature.jwt);
 
         signatures.push({
           type: 'criipto.signature.jwt',
