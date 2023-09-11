@@ -1,5 +1,6 @@
-import { PDFDocument, PDFName, PDFDict, PDFString } from 'pdf-lib';
+import { PDFDocument, PDFName, PDFDict, PDFString, PDFArray, PDFHexString } from 'pdf-lib';
 import { decodeJwt } from 'jose';
+import pkijs from 'pkijs';
 import {CriiptoDrawableEvidence, CriiptoEvidenceWrapper, CriiptoJwtEvidence} from './criipto.js';
 import { tryFindBirthdateClaim, tryFindCountryClaim, tryFindNameClaim, tryFindNonSensitiveId } from './claims.js';
 
@@ -61,12 +62,20 @@ export async function validatePDF(blob: Buffer) : Promise<PAdESValidation> {
     const signatureName = field.acroField.dict.lookup(PDFName.of('T'), PDFString).decodeText();
     const signatureRef = field.acroField.dict.get(PDFName.of('V'));
     const signatureDict = document.catalog.context.lookup(signatureRef, PDFDict);
-    const contactInfo = signatureDict.lookupMaybe(PDFName.of('ContactInfo'), PDFString);
+
+    const byteRange = signatureDict.lookup(PDFName.of('ByteRange'), PDFArray);
+    const contents = signatureDict.lookup(PDFName.of('Contents'), PDFString, PDFHexString);
+    const contentInfo = pkijs.ContentInfo.fromBER(contents.asBytes());
+    if (contentInfo.contentType !== pkijs.ContentInfo.SIGNED_DATA) {
+       throw new Error("CMS is not Signed Data");
+    }
+    const signedData = new pkijs.SignedData({ schema: contentInfo.content });
 
     const baseSignature : PAdESSignature = {
       name: signatureName
     }
 
+    const contactInfo = signatureDict.lookupMaybe(PDFName.of('ContactInfo'), PDFString);
     if (contactInfo) {
       const value = contactInfo.decodeText();
       const wrapper = JSON.parse(value) as CriiptoEvidenceWrapper;
