@@ -18,3 +18,37 @@ jobs:
         working-directory: library
       - run: npm run test
         working-directory: library
+  test-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup kernel for build, increase watchers
+        run: echo fs.inotify.max_user_watches=524288 | sudo tee -a /etc/sysctl.conf && sudo sysctl -p
+      - name: Use Node.js 18.x
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18.x
+          cache: 'npm'
+      - run: npm ci library
+        working-directory: library
+      - run: npm ci frontend
+        working-directory: frontend
+      - run: npm run check
+        working-directory: frontend
+  test-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup kernel for build, increase watchers
+        run: echo fs.inotify.max_user_watches=524288 | sudo tee -a /etc/sysctl.conf && sudo sysctl -p
+      - name: Use Node.js 18.x
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18.x
+          cache: 'npm'
+      - run: npm ci library
+        working-directory: library
+      - run: npm ci backend
+        working-directory: backend
+      - run: npm run check
+        working-directory: backend

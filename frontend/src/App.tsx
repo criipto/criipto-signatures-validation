@@ -1,8 +1,8 @@
-import React, {useCallback, useState} from 'react'
+import {useCallback, useState} from 'react'
 import {useDropzone} from 'react-dropzone'
 import './App.css';
 
-import type {Validation} from '../../library';
+import type {Validation} from '../../library/src/index';
 
 type ValidationResponse = {
   [key: string]: Validation | {error: string}

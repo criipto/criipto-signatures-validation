@@ -16,5 +16,5 @@
   framework = "#custom"
   command = "npm run start:frontend"
   port = 3000
-  targetPort = 3001
+  targetPort = 5173
   autoLaunch = true
