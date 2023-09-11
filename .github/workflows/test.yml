@@ -29,9 +29,6 @@ jobs:
         with:
           node-version: 18.x
           cache: 'npm'
-          cache-dependency-path: 
-            library/package-lock.json
-            frontend/package-lock.json
       - run: npm ci library
         working-directory: library
       - run: npm ci frontend
@@ -49,9 +46,6 @@ jobs:
         with:
           node-version: 18.x
           cache: 'npm'
-          cache-dependency-path: 
-            library/package-lock.json
-            backend/package-lock.json
       - run: npm ci library
         working-directory: library
       - run: npm ci backend
