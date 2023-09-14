@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import IdentityDetails from './Components/IdentityDetails';
+import DecodedJWT from './Components/DecodedJWT';
 import DropzoneComponent from './Components/DropzoneComponent';
 import IdentityEvidence from './Components/IdentityEvidence';
 import './App.css';
@@ -83,6 +84,9 @@ function App() {
                                           </li>
                                           <li key={`evidence-${index}`}>
                                             <IdentityEvidence evidenceData={signature.evidence} />
+                                          </li>
+                                          <li key={`DecodedJWT-${index}`}>
+                                            <DecodedJWT rawPayload={signature.evidence.jwt.raw} />
                                           </li>
                                         </ul>
                                       )}
