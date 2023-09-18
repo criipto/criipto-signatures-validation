@@ -1,8 +1,12 @@
 import { PDFDocument, PDFName, PDFDict, PDFString, PDFArray, PDFHexString } from 'pdf-lib';
-import { decodeJwt } from 'jose';
-import pkijs from 'pkijs';
+import { decodeJwt, decodeProtectedHeader, JWTPayload, jwtVerify } from 'jose';
+import pkijs, { RelativeDistinguishedNames } from 'pkijs';
+import asn1js from 'asn1js';
 import {CriiptoDrawableEvidence, CriiptoEvidenceWrapper, CriiptoJwtEvidence} from './criipto.js';
 import { tryFindBirthdateClaim, tryFindCountryClaim, tryFindNameClaim, tryFindNonSensitiveId } from './claims.js';
+import { toUSVString } from 'util';
+
+export const ALLOWED_CLOCK_SKEW = 5 * 60;
 
 type JwkRendition = {
   kty : string
@@ -18,6 +22,12 @@ type JwksRendition = {
   keys : JwkRendition[]
 }
 
+export type Check = {
+  description: string
+  result: 'OK' | 'WARNING' | 'ERROR'
+  explanation?: string
+}
+
 export type CriiptoIdentity = {
   name: string
   id?: string
@@ -30,9 +40,18 @@ export type CriiptoJwtSignature = {
   identity: CriiptoIdentity
   evidence: {
     jwt: {
+      payload: JWTPayload
       raw: string
     }
     jwks: JwksRendition
+  }
+  validity: {
+    valid: boolean
+    checks: Check[]
+    jwt: {
+      kid: string | null
+      jwk: JwkRendition | null
+    }
   }
 }
 export type CriiptoDrawableSignature = {
@@ -42,9 +61,18 @@ export type CriiptoDrawableSignature = {
     image: string
     name?: string
   }
+  validity: {
+    /**
+    * A drawable signature cannot really be invalid 
+    */
+    valid: true
+  }
 }
 export type PAdESSignature = {
   name: string
+  timestamp?: {
+    date: Date
+  }
 }
 export type PAdESValidation = {
   type: 'pades'
@@ -70,9 +98,13 @@ export async function validatePDF(blob: Buffer) : Promise<PAdESValidation> {
        throw new Error("CMS is not Signed Data");
     }
     const signedData = new pkijs.SignedData({ schema: contentInfo.content });
+    const tst = extractTST(signedData);
 
     const baseSignature : PAdESSignature = {
-      name: signatureName
+      name: signatureName,
+      timestamp: tst ? {
+        date: tst.date
+      } : undefined
     }
 
     const contactInfo = signatureDict.lookupMaybe(PDFName.of('ContactInfo'), PDFString);
@@ -83,6 +115,62 @@ export async function validatePDF(blob: Buffer) : Promise<PAdESValidation> {
       if (wrapper.type === 'signature.jwt.v1' || wrapper.type === 'criipto.signature.jwt.v1') {
         const jwtSignature = JSON.parse(wrapper.value) as CriiptoJwtEvidence;
         const payload = decodeJwt(jwtSignature.jwt);
+        const header = decodeProtectedHeader(jwtSignature.jwt);
+        const jwks : JwksRendition = JSON.parse(jwtSignature.jwks);
+        const kid = header.kid ?? null;
+        const jwk = jwks.keys.find(s => s.kid === kid) ?? null;
+        const exp = payload.exp ? new Date(payload.exp * 1000) : null;
+        const certificate = jwk && jwk.x5c?.[0] ? new pkijs.Certificate({ schema: asn1js.fromBER(Buffer.from(jwk!.x5c[0], 'base64')).result }) : null;
+        console.log(certificate);
+
+        const checks : Check[] = [
+          {
+            description: 'JWT includes a kid',
+            result: kid ? 'OK' : 'ERROR',
+            explanation: kid ? undefined : 'No kid found in embedded JWT header'
+          },
+          {
+            description: 'JWKS includes kid from JWT',
+            result: jwk ? 'OK' : 'ERROR',
+            explanation: jwk ? undefined : 'No JWK found matching kid'
+          },
+          (
+            !exp ? {
+              description: 'JWT had not expired at time of signing',
+              result: 'WARNING',
+              explanation: 'JWT contains no expiration claim'
+            } : 
+            !tst ? {
+              description: 'JWT had not expired at time of signing',
+              result: 'ERROR',
+              explanation: 'Signature contains no timestamp token'
+            } : {
+              description: 'JWT had not expired at time of signing',
+              result: (exp.valueOf() + ALLOWED_CLOCK_SKEW) > tst.date.valueOf() ? 'OK' : 'ERROR',
+              explanation: (exp.valueOf() + ALLOWED_CLOCK_SKEW) > tst.date.valueOf() ? undefined : `JWT expiration (${exp.toJSON()}) is before signature timestamp (${tst.date.toJSON()})`
+            }
+          ),
+          (
+            !certificate ? {
+              description: 'JWK certificate had not expired at time of signing',
+              result: 'WARNING',
+              explanation: 'JWK contained no x5c'
+            } :
+            !tst ? {
+              description: 'JWK certificate had not expired at time of signing',
+              result: 'ERROR',
+              explanation: 'Signature contains no timestamp token'
+            } : {
+              description: 'JWK certificate had not expired at time of signing',
+              result: certificate.notAfter.value.valueOf() > tst.date.valueOf() ? 'OK' : 'ERROR',
+              explanation: 
+                certificate.notAfter.value.valueOf() > tst.date.valueOf() ? undefined :
+                  `JWK certificate was expired (${certificate.notAfter.value.toJSON()}) at the time of signing (${tst.date.toJSON()})`,
+            }
+          )
+        ]
+      
+        const valid = !checks.some(c => c.result === 'ERROR');
 
         signatures.push({
           type: 'criipto.signature.jwt',
@@ -95,9 +183,18 @@ export async function validatePDF(blob: Buffer) : Promise<PAdESValidation> {
           },
           evidence: {
             jwt: {
-              raw: jwtSignature.jwt
+              raw: jwtSignature.jwt,
+              payload
             },
-            jwks: JSON.parse(jwtSignature.jwks)
+            jwks
+          },
+          validity: {
+            valid,
+            checks,
+            jwt: {
+              kid,
+              jwk
+            }
           }
         });
         continue;
@@ -111,7 +208,10 @@ export async function validatePDF(blob: Buffer) : Promise<PAdESValidation> {
           identity: {
             name: imageSignature.name!
           },
-          evidence: imageSignature
+          evidence: imageSignature,
+          validity: {
+            valid: true
+          }
         });
         continue;
       }
@@ -121,7 +221,7 @@ export async function validatePDF(blob: Buffer) : Promise<PAdESValidation> {
 
   return {
     type: 'pades',
-    signatures: signatures
+    signatures: signatures,
   };
 }
 
@@ -143,5 +243,35 @@ export function isPDF(blob: Buffer) {
   // Other BOM lengths
   if (blob.subarray(4, 8).equals(PDF_MAGIC_STRING)) {
     return true;
+  }
+}
+
+export function extractTST(input: pkijs.SignedData) {
+  const tstAttributes = input.signerInfos[0].unsignedAttrs?.attributes.find(s => s.type === '1.2.840.113549.1.9.16.2.14');
+  if (!tstAttributes) return undefined;
+  if (!tstAttributes.values.length) return undefined;
+
+  const tstSimp = new pkijs.ContentInfo({schema: tstAttributes.values[0]});
+  const tstSigned = new pkijs.SignedData({ schema: tstSimp.content });
+
+  // if (tstSigned.certificates) {
+  //   for (const tstCert of tstSigned.certificates) {
+  //     if ("subject" in tstCert) {
+  //       // console.log(tstCert.subject);
+  //       if (tstCert.subject instanceof RelativeDistinguishedNames) {
+  //         for (const attribute of tstCert.subject.typesAndValues) {
+  //           // console.log(attribute.type);
+  //           // console.log(attribute.value.getValue())
+  //         }
+  //       }
+  //     }
+  //   }
+  // }
+  
+  const tstAsn = asn1js.fromBER(tstSigned.encapContentInfo!.eContent!.valueBlock.valueHex);
+  const tstInfo = new pkijs.TSTInfo({ schema: tstAsn.result });
+
+  return {
+    date: tstInfo.genTime
   }
 }
