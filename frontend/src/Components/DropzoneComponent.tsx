@@ -4,14 +4,13 @@ export default function DropzoneComponent({ onDrop, handleUpload }: { onDrop: (a
   const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
 
   return (
-    <div className="mt-8 flex flex-col items-center justify-center">
-      <h1 className="text-center mt-2 mb-4 px-2 py-1">Validate a Signature</h1>
-      <div {...getRootProps()} className="flex items-center justify-center h-36 w-96 border-2 border-dashed rounded-lg p-4 bg-gray-200">
+    <div className="flex flex-col items-center justify-center rounded-md p-4">
+      <div {...getRootProps()} className="flex items-center justify-center h-36 md:w-6/12 border-2 border-dashed rounded-lg p-4 bg-gray-200">
         <input {...getInputProps()} />
-        {isDragActive ? <p>Drop the files here ...</p> : <p>Drag 'n' drop some files here, or click to select files</p>}
+        {isDragActive ? <p>Drop the files here ...</p> : <p>Drag 'n' drop a PDF file here, or click to select file</p>}
       </div>
-      <button onClick={handleUpload} className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">
-        Upload & Validate
+      <button onClick={handleUpload} className="mt-8 px-4 py-2 w-6/12 text-white font-semibold rounded-md bg-bright-purple hover:bg-dark-purple">
+        Submit
       </button>
     </div>
   );
