@@ -1,5 +1,4 @@
 import IdentityDetails from './IdentityDetails';
-import DecodedJWT from './DecodedJWT';
 import IdentityEvidence from './IdentityEvidence';
 
 import type { PAdESSignature, CriiptoJwtSignature, CriiptoDrawableSignature } from '../../../library/src/pades';
@@ -22,9 +21,6 @@ export default function SignatureInfoCard(props: { signature: PAdESSignature & (
             <>
               <li key={`evidence-${index}`}>
                 <IdentityEvidence evidenceData={signature.evidence} />
-              </li>
-              <li key={`DecodedJWT-${index}`}>
-                <DecodedJWT rawPayload={signature.evidence.jwt.raw} />
               </li>
             </>
           )}

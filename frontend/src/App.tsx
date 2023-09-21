@@ -32,7 +32,6 @@ function App() {
 
       if (response.ok) {
         const results = (await response.json()) as ValidationResponse;
-        console.log(results);
         setResults(results);
       } else {
         console.error('HTTP error:', response.status);
