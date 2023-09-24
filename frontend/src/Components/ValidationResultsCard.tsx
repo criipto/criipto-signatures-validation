@@ -11,13 +11,13 @@ export default function ValidationResults(props: { results: ValidationResponse }
   return (
     <>
       {Object.keys(results).length > 0 &&
-        Object.entries(results).map(([fileName, result]) => (
-          <div key={fileName} className="divide-y divide-gray-200 overflow-hidden rounded-lg bg-white shadow my-4">
+        Object.entries(results).map(([fileName, result], index) => (
+          <div key={index} className="divide-y divide-gray-200 overflow-hidden rounded-lg bg-white shadow my-4">
             <div className="px-4 py-5 sm:px-6 bg-dark-purple text-white">
               <h2 className="font-semibold">{fileName}</h2>
             </div>
 
-            <div key={fileName}>
+            <div key={index}>
               {'error' in result ? (
                 <p>Error validating file: {result['error']}</p>
               ) : result.type === 'pades' ? (
@@ -25,7 +25,9 @@ export default function ValidationResults(props: { results: ValidationResponse }
                   {result.signatures && result.signatures.length > 0 ? (
                     <ul>
                       {result.signatures.map((signature, index) => (
-                        <div key={index}>{signature.type === 'criipto.signature.jwt' && <SignatureInfoCard signature={signature} index={index} />}</div>
+                        <div key={index}>
+                          {signature.type === 'criipto.signature.jwt' || signature.type === 'criipto.signature.drawable' ? <SignatureInfoCard signature={signature} index={index} /> : null}
+                        </div>
                       ))}
                     </ul>
                   ) : (
