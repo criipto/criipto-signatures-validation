@@ -27,16 +27,14 @@ export default function IdentityEvidence(props: { evidenceData: EvidenceData | D
         {'jwt' in evidenceData && <p className="mt-1 max-w-2xl text-sm leading-6 text-gray-500">JWT and JWKs</p>}
       </div>
       {'image' in evidenceData && (
-        <p>
-          <div className="pt-0 pb-5 px-5">
-            <div className="border-t border-gray-100 px-4 py-6 sm:col-span-1 sm:px-0">
-              <dt className="text-sm font-medium leading-6 text-gray-900">signature</dt>
-              <dd className="mt-1 text-sm leading-6 text-gray-700 sm:col-span-2 sm:mt-0">
-                <img src={`data:image/png;base64,${evidenceData.image}`} alt="drawable signature" className="w-64 h-48 rounded-lg" />
-              </dd>
-            </div>
+        <div className="pt-0 pb-5 px-5">
+          <div className="border-t border-gray-100 px-4 py-6 sm:col-span-1 sm:px-0">
+            <dt className="text-sm font-medium leading-6 text-gray-900">signature</dt>
+            <dd className="mt-1 text-sm leading-6 text-gray-700 sm:col-span-2 sm:mt-0">
+              <img src={`data:image/png;base64,${evidenceData.image}`} alt="drawable signature" className="w-64 h-48 rounded-lg" />
+            </dd>
           </div>
-        </p>
+        </div>
       )}
 
       {'jwt' in evidenceData && 'jwks' in evidenceData && (
