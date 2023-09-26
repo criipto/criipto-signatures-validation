@@ -1,14 +1,13 @@
 import { useEffect, useState } from 'react';
-import type { CriiptoJwtSignature, CriiptoDrawableSignature } from '../../../library/src/pades';
+import type { CriiptoJwtSignature } from '../../../library/src/pades';
 import JwtPayloadViewer from './JwtPayloadViewer';
 import { JwtPayload } from '@criipto/jwt-viewer';
 
 type EvidenceData = CriiptoJwtSignature['evidence'];
-type DrawableEvidence = CriiptoDrawableSignature['evidence'];
 
-export default function IdentityEvidence(props: { evidenceData: EvidenceData | DrawableEvidence }) {
+export default function IdentityEvidence(props: { evidenceData: EvidenceData }) {
   const { evidenceData } = props;
-  const decodedToken = 'jwt' in evidenceData ? evidenceData.jwt.payload : null;
+  const decodedToken = evidenceData.jwt.payload;
   const [claims, setClaims] = useState<JwtPayload>();
 
   useEffect(() => {
@@ -25,20 +24,8 @@ export default function IdentityEvidence(props: { evidenceData: EvidenceData | D
     <div className="divide-y divide-gray-200 overflow-hidden rounded-lg bg-white shadow mb-6 mt-6">
       <div className="px-4 py-5 sm:px-6 bg-light-purple font-semibold">
         <h3 className="text-base font-semibold leading-7">Identity Evidence</h3>
-        {'image' in evidenceData && <p className="mt-1 max-w-2xl text-sm leading-6 text-gray-500">Drawable signature</p>}
-        {'jwt' in evidenceData && <p className="mt-1 max-w-2xl text-sm leading-6 text-gray-500">JWT and JWKs</p>}
+        <p className="mt-1 max-w-2xl text-sm leading-6 text-gray-500">JWT and JWKs</p>
       </div>
-      {'image' in evidenceData && (
-        <div className="pt-0 pb-5 px-5">
-          <div className="border-t border-gray-100 px-4 py-6 sm:col-span-1 sm:px-0">
-            <dt className="text-sm font-medium leading-6 text-gray-900">signature</dt>
-            <dd className="mt-1 text-sm leading-6 text-gray-700 sm:col-span-2 sm:mt-0">
-              <img src={`data:image/png;base64,${evidenceData.image}`} alt="drawable signature" className="w-64 h-48 rounded-lg" />
-            </dd>
-          </div>
-        </div>
-      )}
-
       {'jwt' in evidenceData && 'jwks' in evidenceData && (
         <>
           <div className="pt-0 pb-5 px-5">

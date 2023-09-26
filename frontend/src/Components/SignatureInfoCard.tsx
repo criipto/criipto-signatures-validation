@@ -1,5 +1,6 @@
 import IdentityDetails from './IdentityDetails';
-import IdentityEvidence from './IdentityEvidence';
+import IdentityEvidenceJWT from './IdentityEvidenceJWT';
+import IdentityEvidenceDrawable from './IdentityEvidenceDrawable';
 import ValidityEvidence from './ValidityEvidence';
 import useCollapsible from '../Hooks/useCollapsible';
 
@@ -24,11 +25,16 @@ export default function SignatureInfoCard(props: { signature: PAdESSignature & (
             <li key={`identity-${index}`}>
               <IdentityDetails identityData={signature.identity} />
             </li>
-            {'jwt' in signature.evidence || 'name' in signature.evidence ? (
+            {'jwt' in signature.evidence && (
               <li key={`evidence-${index}`}>
-                <IdentityEvidence evidenceData={signature.evidence} />
+                <IdentityEvidenceJWT evidenceData={signature.evidence} />
               </li>
-            ) : null}
+            )}
+            {'image' in signature.evidence && (
+              <li key={`evidence-${index}`}>
+                <IdentityEvidenceDrawable evidenceData={signature.evidence} />
+              </li>
+            )}
           </ul>
         </div>
       )}
