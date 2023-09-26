@@ -1,10 +1,10 @@
-import { PDFDocument, PDFName, PDFDict, PDFString, PDFArray, PDFHexString } from 'pdf-lib';
-import { decodeJwt, decodeProtectedHeader, JWTPayload, jwtVerify } from 'jose';
-import pkijs, { RelativeDistinguishedNames } from 'pkijs';
+import { PDFDocument, PDFName, PDFDict, PDFString, PDFHexString } from 'pdf-lib';
+import { decodeJwt, decodeProtectedHeader, JWTPayload } from 'jose';
+import pkijs from 'pkijs';
 import asn1js from 'asn1js';
 import {CriiptoDrawableEvidence, CriiptoEvidenceWrapper, CriiptoJwtEvidence} from './criipto.js';
 import { tryFindBirthdateClaim, tryFindCountryClaim, tryFindNameClaim, tryFindNonSensitiveId } from './claims.js';
-import { toUSVString } from 'util';
+//import { toUSVString } from 'util';
 
 export const ALLOWED_CLOCK_SKEW = 5 * 60;
 
@@ -91,7 +91,6 @@ export async function validatePDF(blob: Buffer) : Promise<PAdESValidation> {
     const signatureRef = field.acroField.dict.get(PDFName.of('V'));
     const signatureDict = document.catalog.context.lookup(signatureRef, PDFDict);
 
-    const byteRange = signatureDict.lookup(PDFName.of('ByteRange'), PDFArray);
     const contents = signatureDict.lookup(PDFName.of('Contents'), PDFString, PDFHexString);
     const contentInfo = pkijs.ContentInfo.fromBER(contents.asBytes());
     if (contentInfo.contentType !== pkijs.ContentInfo.SIGNED_DATA) {
