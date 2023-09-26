@@ -1,5 +1,7 @@
-import type { CriiptoJwtSignature, CriiptoDrawableSignature } from '../../../library/src/pades';
 import { useEffect, useState } from 'react';
+import type { CriiptoJwtSignature, CriiptoDrawableSignature } from '../../../library/src/pades';
+import JwtPayloadViewer from './JwtPayloadViewer';
+import { JwtPayload } from '@criipto/jwt-viewer';
 
 type EvidenceData = CriiptoJwtSignature['evidence'];
 type DrawableEvidence = CriiptoDrawableSignature['evidence'];
@@ -7,11 +9,11 @@ type DrawableEvidence = CriiptoDrawableSignature['evidence'];
 export default function IdentityEvidence(props: { evidenceData: EvidenceData | DrawableEvidence }) {
   const { evidenceData } = props;
   const decodedToken = 'jwt' in evidenceData ? evidenceData.jwt.payload : null;
-  const [claims, setClaims] = useState({});
+  const [claims, setClaims] = useState<JwtPayload>();
 
   useEffect(() => {
     if (decodedToken) {
-      setClaims(decodedToken);
+      setClaims(decodedToken as JwtPayload);
     }
   }, [decodedToken]);
 
@@ -50,7 +52,9 @@ export default function IdentityEvidence(props: { evidenceData: EvidenceData | D
                 <div className="border-t border-gray-100 px-6 py-6 sm:px-0">
                   <dt className="text-sm font-medium leading-6 text-gray-900">JWT Decoded:</dt>
                   <dd className="mt-1 text-sm leading-6 text-gray-700 sm:mt-2">
-                    <pre className="whitespace-pre-wrap break-normal overflow-auto">{JSON.stringify(claims, null, 2)}</pre>
+                    <pre className="whitespace-pre-wrap break-normal overflow-shown">
+                      <JwtPayloadViewer payload={claims} />
+                    </pre>
                   </dd>
                 </div>
               )}
