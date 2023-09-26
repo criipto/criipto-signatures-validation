@@ -120,7 +120,6 @@ export async function validatePDF(blob: Buffer) : Promise<PAdESValidation> {
         const jwk = jwks.keys.find(s => s.kid === kid) ?? null;
         const exp = payload.exp ? new Date(payload.exp * 1000) : null;
         const certificate = jwk && jwk.x5c?.[0] ? new pkijs.Certificate({ schema: asn1js.fromBER(Buffer.from(jwk!.x5c[0], 'base64')).result }) : null;
-        console.log(certificate);
 
         const checks : Check[] = [
           {
