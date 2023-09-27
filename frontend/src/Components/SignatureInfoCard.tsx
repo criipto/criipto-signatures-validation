@@ -20,7 +20,7 @@ export default function SignatureInfoCard(props: { signature: PAdESSignature & (
         <div className="px-4 py-5 sm:p-6 bg-gray-100">
           <ul>
             <li>
-              <ValidityEvidence key={`checks-${index}`} validityChecks={signature.validity} />
+              <ValidityEvidence key={`checks-${index}`} validityChecks={signature.validity} dateSigned={signature.timestamp?.date} />
             </li>
             <li key={`identity-${index}`}>
               <IdentityDetails identityData={signature.identity} />
