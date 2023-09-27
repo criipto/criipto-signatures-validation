@@ -4,7 +4,6 @@ import pkijs from 'pkijs';
 import asn1js from 'asn1js';
 import {CriiptoDrawableEvidence, CriiptoEvidenceWrapper, CriiptoJwtEvidence} from './criipto.js';
 import { tryFindBirthdateClaim, tryFindCountryClaim, tryFindNameClaim, tryFindNonSensitiveId } from './claims.js';
-//import { toUSVString } from 'util';
 
 export const ALLOWED_CLOCK_SKEW = 5 * 60;
 
