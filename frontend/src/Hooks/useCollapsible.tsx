@@ -1,18 +1,25 @@
-import { useState } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 
 function useCollapsible(initialStates: boolean[]) {
   const [isOpenArray, setIsOpenArray] = useState(initialStates);
 
-  const toggleCollapse = (index: number) => {
-    const updatesIsOpenArray = [...isOpenArray];
-    updatesIsOpenArray[index] = !updatesIsOpenArray[index];
-    setIsOpenArray(updatesIsOpenArray);
-  };
+  const toggleCollapse = useCallback(
+    (index: number) => {
+      const updatesIsOpenArray = [...isOpenArray];
+      updatesIsOpenArray[index] = !updatesIsOpenArray[index];
+      setIsOpenArray(updatesIsOpenArray);
+    },
+    [isOpenArray]
+  );
 
-  return {
-    isOpenArray,
-    toggleCollapse,
-  };
+  const memoizedValue = useMemo(() => {
+    return {
+      isOpenArray,
+      toggleCollapse,
+    };
+  }, [isOpenArray, toggleCollapse]);
+
+  return memoizedValue;
 }
 
 export default useCollapsible;
