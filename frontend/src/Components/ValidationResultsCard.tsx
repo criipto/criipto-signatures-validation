@@ -1,4 +1,5 @@
 import SignatureInfoCard from './SignatureInfoCard';
+import UnknownSignature from './UnknownSignature';
 import type { Validation } from '../../../library/src/index';
 import useCollapsible from '../Hooks/useCollapsible';
 
@@ -30,7 +31,11 @@ export default function ValidationResults(props: { results: ValidationResponse }
                       <ul>
                         {result.signatures.map((signature, index) => (
                           <div key={index}>
-                            {signature.type === 'criipto.signature.jwt' || signature.type === 'criipto.signature.drawable' ? <SignatureInfoCard signature={signature} index={index} /> : null}
+                            {signature.type === 'criipto.signature.jwt' || signature.type === 'criipto.signature.drawable' ? (
+                              <SignatureInfoCard signature={signature} index={index} />
+                            ) : (
+                              <UnknownSignature signature={signature} index={index} />
+                            )}
                           </div>
                         ))}
                       </ul>
