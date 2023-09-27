@@ -41,6 +41,7 @@ test('extracts drawable evidence', async (t) => {
 
   const signature = actual.signatures[0];
   t.is(signature.type, 'criipto.signature.drawable');
+  t.truthy(signature.timestamp);
   if (signature.type === 'criipto.signature.drawable') {
     t.truthy(signature.evidence.image);
     t.truthy(signature.evidence.name);
@@ -49,4 +50,8 @@ test('extracts drawable evidence', async (t) => {
     });
     t.true(signature.validity.valid);
   }
+
+  const documentTimestamp = actual.signatures[1];
+  t.is(documentTimestamp.type, 'document-time-stamp');
+  t.truthy(documentTimestamp.timestamp);
 });

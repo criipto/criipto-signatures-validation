@@ -67,15 +67,22 @@ export type CriiptoDrawableSignature = {
     valid: true
   }
 }
+
 export type PAdESSignature = {
   name: string
   timestamp?: {
     date: Date
   }
 }
+
+export type PAdESDocumentTimestamp = {
+  type: 'document-time-stamp'
+}
+
+type SignatureUnion = PAdESSignature & (CriiptoJwtSignature | CriiptoDrawableSignature | PAdESDocumentTimestamp | {type: 'unknown'})
 export type PAdESValidation = {
   type: 'pades'
-  signatures: (PAdESSignature & (CriiptoJwtSignature | CriiptoDrawableSignature | {type: 'unknown'}))[]
+  signatures: SignatureUnion[]
 }
 
 export async function validatePDF(blob: Buffer) : Promise<PAdESValidation> {
@@ -96,6 +103,23 @@ export async function validatePDF(blob: Buffer) : Promise<PAdESValidation> {
        throw new Error("CMS is not Signed Data");
     }
     const signedData = new pkijs.SignedData({ schema: contentInfo.content });
+
+    // doc-timestamp
+    if (signedData.encapContentInfo.eContentType === '1.2.840.113549.1.9.16.1.4') {
+      const tstAsn = asn1js.fromBER(signedData.encapContentInfo!.eContent!.valueBlock.valueHex);
+      const tstInfo = new pkijs.TSTInfo({ schema: tstAsn.result });
+      const date = tstInfo.genTime;
+
+      signatures.push({
+        type: 'document-time-stamp',
+        name: signatureName,
+        timestamp: {
+          date: date
+        }
+      });
+      continue;
+    }
+
     const tst = extractTST(signedData);
 
     const baseSignature : PAdESSignature = {
@@ -213,7 +237,12 @@ export async function validatePDF(blob: Buffer) : Promise<PAdESValidation> {
         continue;
       }
     }
-    signatures.push({type: 'unknown', ...baseSignature});
+
+    console.log(signedData.encapContentInfo.eContentType);
+    console.log(signedData.encapContentInfo.eContent);
+    const tstAsn = asn1js.fromBER(signedData.encapContentInfo!.eContent!.valueBlock.valueHex);
+    const tstInfo = new pkijs.TSTInfo({ schema: tstAsn.result });
+    console.log(tstInfo);
   }
 
   return {
