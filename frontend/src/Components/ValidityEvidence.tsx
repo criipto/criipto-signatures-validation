@@ -1,4 +1,5 @@
 import type { CriiptoJwtSignature, CriiptoDrawableSignature } from '../../../library/src/pades';
+import { formattedDate } from '../Helpers/dateFormatter';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCircleCheck, faCircleXmark, faCircleExclamation } from '@fortawesome/free-solid-svg-icons';
 import Tooltip from './Tooltip';
@@ -8,11 +9,6 @@ type DrawableEvidence = CriiptoDrawableSignature['validity'];
 
 export default function ValidityChecks(props: { validityChecks: ValidityEvidence | DrawableEvidence; dateSigned?: Date }) {
   const { validityChecks, dateSigned } = props;
-  let formattedDateSigned = '';
-  if (dateSigned) {
-    const date = new Date(dateSigned);
-    formattedDateSigned = date.toJSON().slice(0, 19).replace('T', ' ');
-  }
 
   return (
     <div className="overflow-shown bg-white shadow sm:rounded-lg">
@@ -23,9 +19,9 @@ export default function ValidityChecks(props: { validityChecks: ValidityEvidence
         <dl className="divide-y divide-gray-100">
           {dateSigned && (
             <div className="px-4 py-2 sm:grid sm:grid-cols-2 sm:gap-4 sm:px-6 ">
-              <dt className="text-sm font-medium text-gray-900">Signature time:</dt>
+              <dt className="text-sm font-medium text-gray-900">Signature time</dt>
               <dd className="text-center mt-1 text-sm leading-6 text-gray-700 sm:col-span-1 sm:mt-0 ">
-                <p className="h-4 sm:h-5">{formattedDateSigned}</p>
+                <p className="h-4 sm:h-5">{formattedDate(dateSigned)}</p>
               </dd>
             </div>
           )}

@@ -1,5 +1,6 @@
 import SignatureInfoCard from './SignatureInfoCard';
 import UnknownSignature from './UnknownSignature';
+import DocumentTimeStamp from './DocumentTimeStamp';
 import type { Validation } from '../../../library/src/index';
 import useCollapsible from '../Hooks/useCollapsible';
 
@@ -33,6 +34,8 @@ export default function ValidationResults(props: { results: ValidationResponse }
                           <div key={index}>
                             {signature.type === 'criipto.signature.jwt' || signature.type === 'criipto.signature.drawable' ? (
                               <SignatureInfoCard signature={signature} index={index} />
+                            ) : signature.type === 'document-time-stamp' ? (
+                              <DocumentTimeStamp signature={signature} index={index} />
                             ) : (
                               <UnknownSignature signature={signature} index={index} />
                             )}
