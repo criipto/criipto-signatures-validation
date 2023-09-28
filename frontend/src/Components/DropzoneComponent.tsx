@@ -1,7 +1,22 @@
 import { useDropzone } from 'react-dropzone';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faSpinner } from '@fortawesome/free-solid-svg-icons';
 
-export default function DropzoneComponent({ onDrop, handleUpload, fileNames }: { onDrop: (acceptedFiles: File[]) => void; handleUpload: () => void; fileNames: string[] }) {
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
+export default function DropzoneComponent({
+  onDrop,
+  handleUpload,
+  fileNames,
+  uploading,
+}: {
+  onDrop: (acceptedFiles: File[]) => void;
+  handleUpload: () => void;
+  fileNames: string[];
+  uploading: boolean;
+}) {
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: { 'application/pdf': [] },
+  });
 
   const style: React.CSSProperties = {
     flex: 1,
@@ -28,21 +43,25 @@ export default function DropzoneComponent({ onDrop, handleUpload, fileNames }: {
       <div {...getRootProps({ style })} className="flex items-center justify-center h-36 md:w-6/12 border-2 border-dashed rounded-lg p-4 bg-gray-200">
         <input {...getInputProps()} />
         {fileNames.length > 0 && !isDragActive ? (
-          fileNames.map((fileName, index) => (
-            <ul>
-              <li key={index} className="max-w-xs">
+          <ul>
+            {fileNames.map((fileName, index) => (
+              <li key={`${fileName}-${index}`} className="max-w-xs">
                 {truncateFileName(fileName, 30)}
               </li>
-            </ul>
-          ))
+            ))}
+          </ul>
         ) : isDragActive ? (
           <p>Drop the files here ...</p>
         ) : (
           <p>Drag & drop PDF files here, or click to select files</p>
         )}
       </div>
-      <button onClick={handleUpload} className="mt-8 px-4 py-2 w-6/12 text-white font-semibold rounded-md bg-bright-purple hover:bg-dark-purple">
-        Submit
+      <button
+        onClick={handleUpload}
+        disabled={uploading}
+        className={`mt-8 px-4 py-2 w-6/12 text-white font-semibold rounded-md ${uploading ? 'bg-gray-400 cursor-not-allowed' : 'bg-bright-purple  hover:bg-dark-purple'}`}
+      >
+        {uploading ? <FontAwesomeIcon icon={faSpinner} spin /> : 'Submit'}
       </button>
     </div>
   );
