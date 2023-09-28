@@ -30,3 +30,28 @@ test('extracts JWT evidence and identity', async (t) => {
     t.true(signature.validity.checks.length >= 4);
   }
 });
+
+test('extracts drawable evidence', async (t) => {
+  const blob = await fs.readFile(new URL('./drawable.pdf', import.meta.url));
+
+  const actual = await validate(blob);
+
+  t.is(actual.type, 'pades');
+  t.is(actual.signatures.length, 2); // also a doc-ts
+
+  const signature = actual.signatures[0];
+  t.is(signature.type, 'criipto.signature.drawable');
+  t.truthy(signature.timestamp);
+  if (signature.type === 'criipto.signature.drawable') {
+    t.truthy(signature.evidence.image);
+    t.truthy(signature.evidence.name);
+    t.deepEqual(signature.identity, {
+      name: 'Mick Testersen'
+    });
+    t.true(signature.validity.valid);
+  }
+
+  const documentTimestamp = actual.signatures[1];
+  t.is(documentTimestamp.type, 'document-time-stamp');
+  t.truthy(documentTimestamp.timestamp);
+});

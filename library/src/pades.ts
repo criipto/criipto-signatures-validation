@@ -1,10 +1,9 @@
-import { PDFDocument, PDFName, PDFDict, PDFString, PDFArray, PDFHexString } from 'pdf-lib';
-import { decodeJwt, decodeProtectedHeader, JWTPayload, jwtVerify } from 'jose';
-import pkijs, { RelativeDistinguishedNames } from 'pkijs';
+import { PDFDocument, PDFName, PDFDict, PDFString, PDFHexString } from 'pdf-lib';
+import { decodeJwt, decodeProtectedHeader, JWTPayload } from 'jose';
+import pkijs from 'pkijs';
 import asn1js from 'asn1js';
 import {CriiptoDrawableEvidence, CriiptoEvidenceWrapper, CriiptoJwtEvidence} from './criipto.js';
 import { tryFindBirthdateClaim, tryFindCountryClaim, tryFindNameClaim, tryFindNonSensitiveId } from './claims.js';
-import { toUSVString } from 'util';
 
 export const ALLOWED_CLOCK_SKEW = 5 * 60;
 
@@ -68,15 +67,22 @@ export type CriiptoDrawableSignature = {
     valid: true
   }
 }
+
 export type PAdESSignature = {
   name: string
   timestamp?: {
     date: Date
   }
 }
+
+export type PAdESDocumentTimestamp = {
+  type: 'document-time-stamp'
+}
+
+type SignatureUnion = PAdESSignature & (CriiptoJwtSignature | CriiptoDrawableSignature | PAdESDocumentTimestamp | {type: 'unknown'})
 export type PAdESValidation = {
   type: 'pades'
-  signatures: (PAdESSignature & (CriiptoJwtSignature | CriiptoDrawableSignature | {type: 'unknown'}))[]
+  signatures: SignatureUnion[]
 }
 
 export async function validatePDF(blob: Buffer) : Promise<PAdESValidation> {
@@ -91,13 +97,29 @@ export async function validatePDF(blob: Buffer) : Promise<PAdESValidation> {
     const signatureRef = field.acroField.dict.get(PDFName.of('V'));
     const signatureDict = document.catalog.context.lookup(signatureRef, PDFDict);
 
-    const byteRange = signatureDict.lookup(PDFName.of('ByteRange'), PDFArray);
     const contents = signatureDict.lookup(PDFName.of('Contents'), PDFString, PDFHexString);
     const contentInfo = pkijs.ContentInfo.fromBER(contents.asBytes());
     if (contentInfo.contentType !== pkijs.ContentInfo.SIGNED_DATA) {
        throw new Error("CMS is not Signed Data");
     }
     const signedData = new pkijs.SignedData({ schema: contentInfo.content });
+
+    // doc-timestamp
+    if (signedData.encapContentInfo.eContentType === '1.2.840.113549.1.9.16.1.4') {
+      const tstAsn = asn1js.fromBER(signedData.encapContentInfo!.eContent!.valueBlock.valueHex);
+      const tstInfo = new pkijs.TSTInfo({ schema: tstAsn.result });
+      const date = tstInfo.genTime;
+
+      signatures.push({
+        type: 'document-time-stamp',
+        name: signatureName,
+        timestamp: {
+          date: date
+        }
+      });
+      continue;
+    }
+
     const tst = extractTST(signedData);
 
     const baseSignature : PAdESSignature = {
@@ -121,7 +143,6 @@ export async function validatePDF(blob: Buffer) : Promise<PAdESValidation> {
         const jwk = jwks.keys.find(s => s.kid === kid) ?? null;
         const exp = payload.exp ? new Date(payload.exp * 1000) : null;
         const certificate = jwk && jwk.x5c?.[0] ? new pkijs.Certificate({ schema: asn1js.fromBER(Buffer.from(jwk!.x5c[0], 'base64')).result }) : null;
-        console.log(certificate);
 
         const checks : Check[] = [
           {
@@ -216,7 +237,12 @@ export async function validatePDF(blob: Buffer) : Promise<PAdESValidation> {
         continue;
       }
     }
-    signatures.push({type: 'unknown', ...baseSignature});
+
+    console.log(signedData.encapContentInfo.eContentType);
+    console.log(signedData.encapContentInfo.eContent);
+    const tstAsn = asn1js.fromBER(signedData.encapContentInfo!.eContent!.valueBlock.valueHex);
+    const tstInfo = new pkijs.TSTInfo({ schema: tstAsn.result });
+    console.log(tstInfo);
   }
 
   return {
