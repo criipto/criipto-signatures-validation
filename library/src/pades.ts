@@ -4,6 +4,7 @@ import pkijs from 'pkijs';
 import asn1js from 'asn1js';
 import {CriiptoDrawableEvidence, CriiptoEvidenceWrapper, CriiptoJwtEvidence} from './criipto.js';
 import { tryFindBirthdateClaim, tryFindCountryClaim, tryFindNameClaim, tryFindNonSensitiveId } from './claims.js';
+import { tryParseJSON } from './utils.js';
 
 export const ALLOWED_CLOCK_SKEW = 5 * 60;
 
@@ -132,7 +133,14 @@ export async function validatePDF(blob: Buffer) : Promise<PAdESValidation> {
     const contactInfo = signatureDict.lookupMaybe(PDFName.of('ContactInfo'), PDFString);
     if (contactInfo) {
       const value = contactInfo.decodeText();
-      const wrapper = JSON.parse(value) as CriiptoEvidenceWrapper;
+      const wrapper = tryParseJSON<CriiptoEvidenceWrapper>(value);
+      if (!wrapper) {
+        signatures.push({
+          type: 'unknown',
+          ...baseSignature
+        });
+        continue;
+      }
 
       if (wrapper.type === 'signature.jwt.v1' || wrapper.type === 'criipto.signature.jwt.v1') {
         const jwtSignature = JSON.parse(wrapper.value) as CriiptoJwtEvidence;
@@ -238,11 +246,6 @@ export async function validatePDF(blob: Buffer) : Promise<PAdESValidation> {
       }
     }
 
-    console.log(signedData.encapContentInfo.eContentType);
-    console.log(signedData.encapContentInfo.eContent);
-    const tstAsn = asn1js.fromBER(signedData.encapContentInfo!.eContent!.valueBlock.valueHex);
-    const tstInfo = new pkijs.TSTInfo({ schema: tstAsn.result });
-    console.log(tstInfo);
   }
 
   return {

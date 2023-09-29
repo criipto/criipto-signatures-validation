@@ -52,7 +52,7 @@ function App() {
       <div className="lg:mx-24 lg:px-16">
         <div className="overflow-hidden rounded-lg shadow mb-6 bg-light-purple">
           <div className="px-4 py-5 sm:p-6">
-            <h1 className="text-center px-2 py-1 rounded-md font-semibold text-4xl font-sans">Validate a Signature</h1>
+            <h1 className="text-center px-2 py-1 rounded-md font-semibold text-4xl font-sans">Validate a Criipto Signatures document</h1>
             <p className="p-4 text-center">Here you can validate signed PDF files and view information included in the signatures.</p>
             <DropzoneComponent onDrop={onDrop} handleUpload={handleUpload} fileNames={fileNames} uploading={uploading} />
           </div>
