@@ -45,23 +45,23 @@ export function findIdentitySchemeClaim(claims: JWTPayload) {
 }
 
 export function tryFindNameClaim(claims: JWTPayload) {
-  return findClaim(
-      ["name", "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"],
-      claims
+  return tryFindClaim(
+    ["name", "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"],
+    claims
   )
 }
 
 export function tryFindCountryClaim(claims: JWTPayload) {
-  return findClaim(
-      ["country", "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/country"],
-      claims
+  return tryFindClaim(
+    ["country", "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/country"],
+    claims
   )
 }
 
 export function tryFindBirthdateClaim(claims: JWTPayload) {
-  return findClaim(
-      ["birthdate", "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/dateofbirth"],
-      claims
+  return tryFindClaim(
+    ["birthdate", "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/dateofbirth"],
+    claims
   )
 }
 
