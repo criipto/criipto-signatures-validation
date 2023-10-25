@@ -206,8 +206,8 @@ export async function validatePDF(blob: Buffer) : Promise<PAdESValidation> {
           ...baseSignature,
           identity: {
             name: tryFindNameClaim(payload)!,
-            country: tryFindCountryClaim(payload),
-            birthdate: tryFindBirthdateClaim(payload),
+            country: tryFindCountryClaim(payload) ?? undefined,
+            birthdate: tryFindBirthdateClaim(payload) ?? undefined,
             id: tryFindNonSensitiveId(payload) ?? undefined,
           },
           evidence: {
