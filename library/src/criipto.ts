@@ -13,3 +13,8 @@ export interface CriiptoDrawableEvidence {
   image: string;
   name?: string;
 }
+
+export type CriiptoCompositeEvidence = (
+  {type: 'criipto.signature.jwt.v1', value: CriiptoJwtEvidence} |
+  {type: 'criipto.signature.drawable.v1', value: CriiptoDrawableEvidence}
+)[];
