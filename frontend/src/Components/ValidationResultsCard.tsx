@@ -1,6 +1,7 @@
 import SignatureInfoCard from './SignatureInfoCard';
 import UnknownSignature from './UnknownSignature';
 import DocumentTimeStamp from './DocumentTimeStamp';
+import CompositeSignature from './CompositeSignature';
 import type { Validation } from '../../../library/src/index';
 import useCollapsible from '../Hooks/useCollapsible';
 
@@ -17,8 +18,15 @@ export default function ValidationResults(props: { results: ValidationResponse }
     <>
       {Object.keys(results).length > 0 &&
         Object.entries(results).map(([fileName, result], index) => (
-          <div key={index} className="divide-y divide-gray-200 overflow-hidden rounded-lg bg-white shadow my-4">
-            <div className="px-4 py-5 sm:px-6 bg-dark-purple text-white" onClick={() => toggleCollapse(index)} key={`header-${index}`}>
+          <div
+            key={index}
+            className="divide-y divide-gray-200 overflow-hidden rounded-lg bg-white shadow my-4"
+          >
+            <div
+              className="px-4 py-5 sm:px-6 bg-dark-purple text-white"
+              onClick={() => toggleCollapse(index)}
+              key={`header-${index}`}
+            >
               <h2 className="font-semibold">{fileName}</h2>
             </div>
 
@@ -33,11 +41,25 @@ export default function ValidationResults(props: { results: ValidationResponse }
                         {result.signatures.map((signature, index) => (
                           <div key={index}>
                             {signature.type === 'criipto.signature.jwt' || signature.type === 'criipto.signature.drawable' ? (
-                              <SignatureInfoCard signature={signature} index={index} />
+                              <SignatureInfoCard
+                                signature={signature}
+                                index={index}
+                              />
                             ) : signature.type === 'document-time-stamp' ? (
-                              <DocumentTimeStamp signature={signature} index={index} />
+                              <DocumentTimeStamp
+                                signature={signature}
+                                index={index}
+                              />
+                            ) : signature.type === 'criipto.signature.composite' ? (
+                              <CompositeSignature
+                                signature={signature}
+                                index={index}
+                              />
                             ) : (
-                              <UnknownSignature signature={signature} index={index} />
+                              <UnknownSignature
+                                signature={signature}
+                                index={index}
+                              />
                             )}
                           </div>
                         ))}
