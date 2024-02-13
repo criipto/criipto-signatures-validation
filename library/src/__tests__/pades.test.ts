@@ -55,3 +55,25 @@ test('extracts drawable evidence', async (t) => {
   t.is(documentTimestamp.type, 'document-time-stamp');
   t.truthy(documentTimestamp.timestamp);
 });
+
+test('extracts composite evidence', async t => {
+  const blob = await fs.readFile(new URL('./composite.pdf', import.meta.url));
+
+  const actual = await validate(blob);
+
+  t.is(actual.type, 'pades');
+  t.is(actual.signatures.length, 3);
+  const signature = actual.signatures[0];
+  t.is(signature.type, 'criipto.signature.composite');
+  t.truthy(signature.timestamp);
+
+  if (signature.type === 'criipto.signature.composite') {
+    const evidences = signature.evidences;
+    t.is(evidences.length, 2);
+
+    t.is(evidences[0].type, 'criipto.signature.drawable');
+    t.is(evidences[0].identity.name, 'Test');
+    t.is(evidences[1].type, 'criipto.signature.jwt');
+    t.is(evidences[1].identity.name, 'Kaj Andersen');
+  }
+});

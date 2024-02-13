@@ -2,7 +2,7 @@ import { PDFDocument, PDFName, PDFDict, PDFString, PDFHexString } from 'pdf-lib'
 import { decodeJwt, decodeProtectedHeader, JWTPayload } from 'jose';
 import pkijs from 'pkijs';
 import asn1js from 'asn1js';
-import {CriiptoDrawableEvidence, CriiptoEvidenceWrapper, CriiptoJwtEvidence} from './criipto.js';
+import {CriiptoCompositeEvidence, CriiptoDrawableEvidence, CriiptoEvidenceWrapper, CriiptoJwtEvidence} from './criipto.js';
 import { tryFindBirthdateClaim, tryFindCountryClaim, tryFindNameClaim, tryFindNonSensitiveId } from './claims.js';
 import { tryParseJSON } from './utils.js';
 
@@ -69,6 +69,11 @@ export type CriiptoDrawableSignature = {
   }
 }
 
+export type CriiptoCompositeSignature = {
+  type: 'criipto.signature.composite'
+  evidences: (CriiptoJwtSignature | CriiptoDrawableSignature)[]
+}
+
 export type PAdESSignature = {
   name: string
   timestamp?: {
@@ -80,10 +85,106 @@ export type PAdESDocumentTimestamp = {
   type: 'document-time-stamp'
 }
 
-type SignatureUnion = PAdESSignature & (CriiptoJwtSignature | CriiptoDrawableSignature | PAdESDocumentTimestamp | {type: 'unknown'})
+type SignatureUnion = PAdESSignature & (CriiptoJwtSignature | CriiptoDrawableSignature | CriiptoCompositeSignature | PAdESDocumentTimestamp | {type: 'unknown'})
 export type PAdESValidation = {
   type: 'pades'
   signatures: SignatureUnion[]
+}
+
+function parseJwtEvidence(jwtEvidence: CriiptoJwtEvidence, tst?: {date: Date}) : CriiptoJwtSignature {
+  const payload = decodeJwt(jwtEvidence.jwt);
+  const header = decodeProtectedHeader(jwtEvidence.jwt);
+  const jwks : JwksRendition = JSON.parse(jwtEvidence.jwks);
+  const kid = header.kid ?? null;
+  const jwk = jwks.keys.find(s => s.kid === kid) ?? null;
+  const exp = payload.exp ? new Date(payload.exp * 1000) : null;
+  const certificate = jwk && jwk.x5c?.[0] ? new pkijs.Certificate({ schema: asn1js.fromBER(Buffer.from(jwk!.x5c[0], 'base64')).result }) : null;
+
+  const checks : Check[] = [
+    {
+      description: 'JWT includes a kid',
+      result: kid ? 'OK' : 'ERROR',
+      explanation: kid ? undefined : 'No kid found in embedded JWT header'
+    },
+    {
+      description: 'JWKS includes kid from JWT',
+      result: jwk ? 'OK' : 'ERROR',
+      explanation: jwk ? undefined : 'No JWK found matching kid'
+    },
+    (
+      !exp ? {
+        description: 'JWT had not expired at time of signing',
+        result: 'WARNING',
+        explanation: 'JWT contains no expiration claim'
+      } : 
+      !tst ? {
+        description: 'JWT had not expired at time of signing',
+        result: 'ERROR',
+        explanation: 'Signature contains no timestamp token'
+      } : {
+        description: 'JWT had not expired at time of signing',
+        result: (exp.valueOf() + ALLOWED_CLOCK_SKEW) > tst.date.valueOf() ? 'OK' : 'ERROR',
+        explanation: (exp.valueOf() + ALLOWED_CLOCK_SKEW) > tst.date.valueOf() ? undefined : `JWT expiration (${exp.toJSON()}) is before signature timestamp (${tst.date.toJSON()})`
+      }
+    ),
+    (
+      !certificate ? {
+        description: 'JWK certificate had not expired at time of signing',
+        result: 'WARNING',
+        explanation: 'JWK contained no x5c'
+      } :
+      !tst ? {
+        description: 'JWK certificate had not expired at time of signing',
+        result: 'ERROR',
+        explanation: 'Signature contains no timestamp token'
+      } : {
+        description: 'JWK certificate had not expired at time of signing',
+        result: certificate.notAfter.value.valueOf() > tst.date.valueOf() ? 'OK' : 'ERROR',
+        explanation: 
+          certificate.notAfter.value.valueOf() > tst.date.valueOf() ? undefined :
+            `JWK certificate was expired (${certificate.notAfter.value.toJSON()}) at the time of signing (${tst.date.toJSON()})`,
+      }
+    )
+  ]
+
+  const valid = !checks.some(c => c.result === 'ERROR');
+
+  return {
+    type: 'criipto.signature.jwt',
+    identity: {
+      name: tryFindNameClaim(payload)!,
+      country: tryFindCountryClaim(payload) ?? undefined,
+      birthdate: tryFindBirthdateClaim(payload) ?? undefined,
+      id: tryFindNonSensitiveId(payload) ?? undefined,
+    },
+    evidence: {
+      jwt: {
+        raw: jwtEvidence.jwt,
+        payload
+      },
+      jwks
+    },
+    validity: {
+      valid,
+      checks,
+      jwt: {
+        kid,
+        jwk
+      }
+    }
+  };
+}
+function parseDrawableEvidence(evidence: CriiptoDrawableEvidence) : CriiptoDrawableSignature {
+  return {
+    type: 'criipto.signature.drawable',
+    identity: {
+      name: evidence.name!
+    },
+    evidence: evidence,
+    validity: {
+      valid: true
+    }
+  }
 }
 
 export async function validatePDF(blob: Buffer) : Promise<PAdESValidation> {
@@ -144,87 +245,9 @@ export async function validatePDF(blob: Buffer) : Promise<PAdESValidation> {
 
       if (wrapper.type === 'signature.jwt.v1' || wrapper.type === 'criipto.signature.jwt.v1') {
         const jwtSignature = JSON.parse(wrapper.value) as CriiptoJwtEvidence;
-        const payload = decodeJwt(jwtSignature.jwt);
-        const header = decodeProtectedHeader(jwtSignature.jwt);
-        const jwks : JwksRendition = JSON.parse(jwtSignature.jwks);
-        const kid = header.kid ?? null;
-        const jwk = jwks.keys.find(s => s.kid === kid) ?? null;
-        const exp = payload.exp ? new Date(payload.exp * 1000) : null;
-        const certificate = jwk && jwk.x5c?.[0] ? new pkijs.Certificate({ schema: asn1js.fromBER(Buffer.from(jwk!.x5c[0], 'base64')).result }) : null;
-
-        const checks : Check[] = [
-          {
-            description: 'JWT includes a kid',
-            result: kid ? 'OK' : 'ERROR',
-            explanation: kid ? undefined : 'No kid found in embedded JWT header'
-          },
-          {
-            description: 'JWKS includes kid from JWT',
-            result: jwk ? 'OK' : 'ERROR',
-            explanation: jwk ? undefined : 'No JWK found matching kid'
-          },
-          (
-            !exp ? {
-              description: 'JWT had not expired at time of signing',
-              result: 'WARNING',
-              explanation: 'JWT contains no expiration claim'
-            } : 
-            !tst ? {
-              description: 'JWT had not expired at time of signing',
-              result: 'ERROR',
-              explanation: 'Signature contains no timestamp token'
-            } : {
-              description: 'JWT had not expired at time of signing',
-              result: (exp.valueOf() + ALLOWED_CLOCK_SKEW) > tst.date.valueOf() ? 'OK' : 'ERROR',
-              explanation: (exp.valueOf() + ALLOWED_CLOCK_SKEW) > tst.date.valueOf() ? undefined : `JWT expiration (${exp.toJSON()}) is before signature timestamp (${tst.date.toJSON()})`
-            }
-          ),
-          (
-            !certificate ? {
-              description: 'JWK certificate had not expired at time of signing',
-              result: 'WARNING',
-              explanation: 'JWK contained no x5c'
-            } :
-            !tst ? {
-              description: 'JWK certificate had not expired at time of signing',
-              result: 'ERROR',
-              explanation: 'Signature contains no timestamp token'
-            } : {
-              description: 'JWK certificate had not expired at time of signing',
-              result: certificate.notAfter.value.valueOf() > tst.date.valueOf() ? 'OK' : 'ERROR',
-              explanation: 
-                certificate.notAfter.value.valueOf() > tst.date.valueOf() ? undefined :
-                  `JWK certificate was expired (${certificate.notAfter.value.toJSON()}) at the time of signing (${tst.date.toJSON()})`,
-            }
-          )
-        ]
-      
-        const valid = !checks.some(c => c.result === 'ERROR');
-
         signatures.push({
-          type: 'criipto.signature.jwt',
           ...baseSignature,
-          identity: {
-            name: tryFindNameClaim(payload)!,
-            country: tryFindCountryClaim(payload) ?? undefined,
-            birthdate: tryFindBirthdateClaim(payload) ?? undefined,
-            id: tryFindNonSensitiveId(payload) ?? undefined,
-          },
-          evidence: {
-            jwt: {
-              raw: jwtSignature.jwt,
-              payload
-            },
-            jwks
-          },
-          validity: {
-            valid,
-            checks,
-            jwt: {
-              kid,
-              jwk
-            }
-          }
+          ...parseJwtEvidence(jwtSignature, tst)
         });
         continue;
       }
@@ -232,17 +255,24 @@ export async function validatePDF(blob: Buffer) : Promise<PAdESValidation> {
         const imageSignature = JSON.parse(wrapper.value) as CriiptoDrawableEvidence;
 
         signatures.push({
-          type: 'criipto.signature.drawable',
           ...baseSignature,
-          identity: {
-            name: imageSignature.name!
-          },
-          evidence: imageSignature,
-          validity: {
-            valid: true
-          }
+          ...parseDrawableEvidence(imageSignature)
         });
         continue;
+      }
+      if (wrapper.type === 'criipto.signature.composite.v1') {
+        const evidences = JSON.parse(wrapper.value) as CriiptoCompositeEvidence;
+        signatures.push({
+          type: 'criipto.signature.composite',
+          ...baseSignature,
+          evidences: 
+            evidences.map(evidence => {
+              if (evidence.type === 'criipto.signature.drawable.v1') return {...baseSignature, ...parseDrawableEvidence(evidence.value)};
+              if (evidence.type === 'criipto.signature.jwt.v1') return {...baseSignature, ...parseJwtEvidence(evidence.value)};
+              return null as any;
+            })
+            .filter(id => id)
+        });
       }
     }
 
