@@ -1,6 +1,5 @@
 import test from 'ava';
 import fs from 'fs/promises';
-import { it } from 'node:test';
 import { validate } from '../index.js';
 
 test('extracts JWT evidence and identity', async (t) => {
